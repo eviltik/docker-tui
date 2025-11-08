@@ -1,0 +1,28 @@
+# Go
+docker-tui
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+go.work
+
+# Test coverage
+coverage.out
+coverage.html
+
+# Distribution
+dist/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
