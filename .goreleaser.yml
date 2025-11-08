@@ -1,0 +1,78 @@
+version: 2
+
+project_name: docker-tui
+
+before:
+  hooks:
+    - go mod tidy
+    - go mod download
+
+builds:
+  - id: docker-tui
+    main: ./src
+    binary: docker-tui
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - darwin
+      - windows
+    goarch:
+      - amd64
+      - arm64
+    ldflags:
+      - -s -w
+      - -X main.Version={{.Version}}
+      - -X main.BuildTime={{.Date}}
+
+archives:
+  - id: docker-tui
+    name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    formats:
+      - tar.gz
+      - binary  # Include raw binary for direct download
+    format_overrides:
+      - goos: windows
+        formats:
+          - zip
+    files:
+      - LICENSE
+      - README.md
+
+checksum:
+  name_template: "{{ .ProjectName }}-{{ .Version }}-checksums.txt"
+  algorithm: sha256
+
+changelog:
+  use: github
+  sort: asc
+  filters:
+    exclude:
+      - "^docs:"
+      - "^test:"
+      - "^ci:"
+      - "^chore:"
+      - "^style:"
+      - Merge pull request
+      - Merge branch
+
+release:
+  github:
+    owner: eviltik
+    name: docker-tui
+  draft: false
+  prerelease: auto
+  name_template: "v{{.Version}}"
+
+nfpms:
+  - id: docker-tui
+    package_name: docker-tui
+    file_name_template: "{{ .ProjectName }}-{{ .Version }}-{{ .Os }}-{{ .Arch }}"
+    homepage: https://github.com/eviltik/docker-tui
+    maintainer: eviltik
+    description: A modern, fast Terminal User Interface (TUI) for managing Docker containers
+    license: MIT
+    formats:
+      - deb
+      - rpm
+    bindir: /usr/local/bin
