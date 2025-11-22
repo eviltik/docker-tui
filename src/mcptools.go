@@ -169,10 +169,22 @@ func (s *MCPServer) handleGetLogs(ctx context.Context, request *protocol.CallToo
 		args.Lines = 10000
 	}
 
-	// Match containers by name
-	containers, err := matchContainersByName(s.dockerClient, args.Containers)
-	if err != nil {
-		return nil, fmt.Errorf("failed to match containers: %w", err)
+	// Match containers by name, or get ALL containers if none specified
+	var containers []types.Container
+	var err error
+
+	if len(args.Containers) == 0 {
+		// No containers specified - search across ALL containers
+		containers, err = loadContainersSync(s.dockerClient)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load containers: %w", err)
+		}
+	} else {
+		// Specific containers requested
+		containers, err = matchContainersByName(s.dockerClient, args.Containers)
+		if err != nil {
+			return nil, fmt.Errorf("failed to match containers: %w", err)
+		}
 	}
 
 	if len(containers) == 0 {
@@ -180,7 +192,7 @@ func (s *MCPServer) handleGetLogs(ctx context.Context, request *protocol.CallToo
 			Content: []protocol.Content{
 				&protocol.TextContent{
 					Type: "text",
-					Text: "No containers found matching the specified names",
+					Text: "No containers found",
 				},
 			},
 		}, nil

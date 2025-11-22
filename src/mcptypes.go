@@ -2,7 +2,7 @@ package main
 
 // GetLogsArgs defines arguments for the get_logs tool
 type GetLogsArgs struct {
-	Containers []string `json:"containers" description:"Container names or IDs (supports partial matches)"`
+	Containers []string `json:"containers,omitempty" description:"Container names or IDs (supports partial matches). Leave empty to search across ALL containers."`
 	Filter     string   `json:"filter,omitempty" description:"Keyword or regex pattern to filter log lines"`
 	IsRegex    bool     `json:"is_regex,omitempty" description:"Treat filter as regex (default: false, substring search)"`
 	Lines      int      `json:"lines,omitempty" description:"Maximum lines per container (default: 100, max: 10000)"`

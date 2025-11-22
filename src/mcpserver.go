@@ -406,7 +406,7 @@ func (s *MCPServer) registerTools() error {
 	// Register list_containers tool
 	listContainersTool, err := protocol.NewTool(
 		"list_containers",
-		"List all Docker containers with status and resource usage",
+		"List all Docker containers with their status, CPU usage, log rate, uptime, and exposed ports. Filter by state (running/stopped) or name. Use this to get an overview of all containers or find specific ones.",
 		ListContainersArgs{},
 	)
 	if err != nil {
@@ -417,7 +417,7 @@ func (s *MCPServer) registerTools() error {
 	// Register get_logs tool
 	getLogsTool, err := protocol.NewTool(
 		"get_logs",
-		"Fetch Docker container logs with optional filtering",
+		"Search and fetch Docker container logs using keywords or regex filtering. Search across all containers (leave 'containers' empty) or specific ones. Use 'filter' parameter to find errors, warnings, or specific log patterns.",
 		GetLogsArgs{},
 	)
 	if err != nil {
@@ -428,7 +428,7 @@ func (s *MCPServer) registerTools() error {
 	// Register get_stats tool
 	getStatsTool, err := protocol.NewTool(
 		"get_stats",
-		"Get detailed resource statistics for specific containers",
+		"Get detailed real-time resource statistics for specific containers including CPU percentage, optional CPU history (10 values), log rate (lines/second), current status, and ports. Useful for monitoring container performance.",
 		GetStatsArgs{},
 	)
 	if err != nil {
@@ -439,7 +439,7 @@ func (s *MCPServer) registerTools() error {
 	// Register start_container tool
 	startContainerTool, err := protocol.NewTool(
 		"start_container",
-		"Start one or more stopped Docker containers",
+		"Start one or more stopped Docker containers. Supports partial name matching and batch operations. Returns success/failure status for each container.",
 		ContainerActionArgs{},
 	)
 	if err != nil {
@@ -450,7 +450,7 @@ func (s *MCPServer) registerTools() error {
 	// Register stop_container tool
 	stopContainerTool, err := protocol.NewTool(
 		"stop_container",
-		"Stop one or more running Docker containers",
+		"Stop one or more running Docker containers gracefully (10-second timeout). Supports partial name matching and batch operations. Returns success/failure status for each container.",
 		ContainerActionArgs{},
 	)
 	if err != nil {
@@ -461,7 +461,7 @@ func (s *MCPServer) registerTools() error {
 	// Register restart_container tool
 	restartContainerTool, err := protocol.NewTool(
 		"restart_container",
-		"Restart one or more Docker containers",
+		"Restart one or more Docker containers (10-second timeout). Works on containers in any state. Supports partial name matching and batch operations. Returns success/failure status for each container.",
 		ContainerActionArgs{},
 	)
 	if err != nil {

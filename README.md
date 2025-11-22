@@ -251,8 +251,9 @@ Docker TUI includes a built-in MCP HTTP server that exposes Docker container man
    - Filter by name (case-insensitive substring)
    - Returns: container ID, name, state, status, CPU%, log rate, ports
 
-2. **get_logs** - Fetch container logs with advanced filtering
-   - Support for regex or substring filtering
+2. **get_logs** - Search and fetch container logs with advanced filtering
+   - **Global search**: Leave 'containers' empty to search across ALL containers
+   - Support for regex or substring filtering (keywords like "error", "warn")
    - Configurable line limit (default: 100, max: 10000)
    - Automatic ANSI code stripping for accurate filtering
    - Returns: formatted logs with container name prefix

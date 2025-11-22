@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.0] - 2025-01-22
+
+### Added
+- **MCP Global Log Search**: `get_logs` tool can now search across ALL containers when 'containers' parameter is empty
+- Enhanced MCP tool descriptions to better guide AI assistants on usage and capabilities
+
+### Improved
+- **MCP Tool Descriptions**: All 6 MCP tools now have detailed, explicit descriptions explaining:
+  - What data they return (CPU%, log rate, ports, etc.)
+  - Available features (filtering, partial matching, batch operations)
+  - Typical use cases and best practices
+- `get_logs` description emphasizes global search capability and filter usage for finding errors/warnings
+- `list_containers` description details all returned metrics (status, CPU, log rate, uptime, ports)
+- `get_stats` description specifies real-time metrics and optional CPU history
+- Container action tools (start/stop/restart) descriptions mention timeout, partial matching, and batch support
+
+### Changed
+- `get_logs` 'containers' parameter is now optional (leave empty to search all containers)
+- Parameter descriptions updated to guide AI on optional vs required usage
+
 ## [1.1.0] - 2025-01-22
 
 ### Changed

@@ -202,6 +202,12 @@ Activated via `--mcp-server` flag (optional `--mcp-port` to customize port):
 - Status displayed in header bar when active
 - See [src/mcpserver.go](src/mcpserver.go) for implementation details
 
+**MCP Tool Capabilities:**
+- `get_logs`: Global log search across ALL containers (leave 'containers' empty) with keyword/regex filtering
+- `list_containers`: Returns status, CPU%, log rate, uptime, ports with optional filtering by state/name
+- `get_stats`: Real-time CPU%, optional 10-value CPU history, log rate, status, ports
+- `start_container/stop_container/restart_container`: Batch operations with partial name matching, 10s timeout
+
 ### Column Structure (v1.3.0+)
 **Container List Columns** (left to right):
 - NAME (35 chars, left-aligned) - container name with demo mode support
