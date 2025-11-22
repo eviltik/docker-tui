@@ -99,7 +99,7 @@ docker-tui --help                             # Show help
 
 | Key | Action |
 |-----|--------|
-| `↑/↓` or `k/j` | Navigate up/down |
+| `↑/↓` | Navigate up/down |
 | `PgUp/PgDown` | Jump by 10 items |
 | `Home/End` | Jump to first/last |
 | `SPACE` | Toggle selection |
@@ -110,9 +110,9 @@ docker-tui --help                             # Show help
 | `I` | Invert selection |
 | `ENTER` or `L` | Show logs for selected container(s) |
 | `S` | Start selected container(s) |
-| `P` | Stop selected container(s) |
+| `K` | Kill (stop) selected container(s) |
 | `R` | Restart selected container(s) |
-| `U` | Pause/Unpause selected container(s) |
+| `P` | Pause/Unpause selected container(s) |
 | `D` | Remove selected container(s) |
 | `/` | Filter containers (regex support) |
 | `Q/ESC` | Quit (with confirmation) or clear filter |
@@ -122,7 +122,7 @@ docker-tui --help                             # Show help
 
 | Key | Action |
 |-----|--------|
-| `↑/↓` or `k/j` | Scroll logs line by line |
+| `↑/↓` | Scroll logs line by line |
 | `PgUp/PgDown` | Page up/down |
 | `Home/End` | Jump to top/bottom |
 | `ENTER` | Insert timestamp mark |

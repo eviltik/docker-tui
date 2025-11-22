@@ -105,13 +105,41 @@ CPU percentage calculation (can exceed 100%):
 - Only scrolls if user is already at bottom (respects manual scroll position)
 - Triggered by `newLogLineMsg` from BufferConsumer callback
 
+### Keyboard Shortcuts
+**Navigation:**
+- Up/Down arrows - Navigate container list
+- PgUp/PgDn - Page up/down in list
+- Home/End - Jump to first/last container
+- Shift+Up/Down - Range selection
+
+**Selection:**
+- Space - Toggle selection of current container
+- A - Select all containers
+- Ctrl+A - Select only running containers
+- X - Clear all selections
+- I - Invert selection
+
+**Container Actions:**
+- S - Start selected containers
+- K - Kill (stop) selected containers
+- R - Restart selected containers
+- P - Pause/unpause selected containers
+- D - Remove selected containers (with confirmation)
+
+**View/Filtering:**
+- Enter/L - Show logs for selected containers
+- / - Enter filter mode (regex)
+- Esc - Exit filter mode or clear active filter
+- Q - Quit application (with confirmation)
+
+**Mouse Support:**
+- Single click - Toggle container selection
+- Double click - Show logs for container
+
 ### Selection Behavior
-- SPACE toggles individual selection
-- Shift+Up/Down for range selection (tracks `shiftStart` position)
-- A selects all containers, Ctrl+A selects only running containers
-- X clears selection, I inverts selection
-- Single-click toggles selection, double-click shows logs
 - Cursor position tracked separately from selection state
+- Multi-select confirmation dialogs for destructive actions
+- Visual feedback with colored backgrounds and checkmarks
 
 ### Filtering System
 **Container List Filtering** (regex with validation):
@@ -129,6 +157,17 @@ CPU percentage calculation (can exceed 100%):
 - Applied via `logLineMatchesFilter()` in [src/model.go](src/model.go)
 - Scroll resets to top when filter changes, to bottom when cleared
 
+### Status Bar
+Header displays real-time statistics (right-aligned, no background):
+- **Total: X** - Total number of containers
+- **Running: X** - Number of running containers
+- **Stopped: X** - Number of stopped containers
+- **Hidden: X** - Containers hidden by active filter (when filter active)
+- **MCP: ON (:port)** - MCP server status (when `--mcp-server` flag is used)
+- **Debug metrics** - GR/FD/MEM/STREAM/CONS/BUF (when `--debug-monitor` flag is used)
+
+Filter indicator appears in title area when filter is active: 🔍 pattern
+
 ### Demo Mode
 Activated via `--demo` command line flag:
 - Hides container name prefixes up to and including first underscore
@@ -137,6 +176,16 @@ Activated via `--demo` command line flag:
 - Applied in both list view and logs view for consistency
 - Used for width calculations to ensure proper alignment
 - Color hashing still uses original name for consistency
+
+### MCP Server Integration
+Activated via `--mcp-server` flag (optional `--mcp-port` to customize port):
+- Runs HTTP server alongside TUI for Claude Desktop integration
+- Default port: 9876
+- MCPServer reference stored in model for status display
+- Exposes 6 tools: list_containers, get_logs, get_stats, start_container, stop_container, restart_container
+- Uses StreamableHTTPServerTransport in stateful mode with SSE support
+- Status displayed in header bar when active
+- See [src/mcpserver.go](src/mcpserver.go) for implementation details
 
 ### Column Structure (v1.3.0+)
 **Container List Columns** (left to right):
