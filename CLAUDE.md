@@ -36,12 +36,14 @@ The application follows Bubbletea's Elm Architecture pattern with three core com
 Located in [src/model.go](src/model.go), the `model` struct contains all application state:
 - Docker client and container list
 - Selection state (`selected` map, `cursor` position)
-- View mode (`listView`, `logsView`, `confirmView`, `exitConfirmView`)
+- View mode (`listView`, `logsView`, `confirmView`, `exitConfirmView`, `mcpLogsView`)
 - Processing state for async operations
 - CPU statistics tracking (current + 10-value history)
+- CPUStatsCache instance (`cpuCache`) for instant MCP responses (shared with MCPServer)
 - LogBroker instance (`logBroker`) for centralized log streaming management
 - RateTracker instance (`rateTracker`) for L/S (lines/second) monitoring
 - BufferConsumer instance (`bufferConsumer`) for logs view circular buffering
+- MCPServer instance (`mcpServer`) for Claude Desktop integration
 - Filter state (`filterMode`, `filterInput`, `filterActive`, `filterRegex`, `filterIsRegex`)
 - Demo mode flag (`demoMode`) for hiding container name prefixes
 - Closing flag (`closing atomic.Bool`) for graceful shutdown coordination
@@ -105,6 +107,18 @@ CPU percentage calculation (can exceed 100%):
 - Only scrolls if user is already at bottom (respects manual scroll position)
 - Triggered by `newLogLineMsg` from BufferConsumer callback
 
+### CPU Stats Cache Architecture
+
+**CPUStatsCache Pattern** ([src/cpucache.go](src/cpucache.go)):
+- Shared cache for instant MCP responses without blocking Docker API calls
+- Updated by model every 5 seconds when receiving `cpuStatsMsg`
+- Thread-safe with RWMutex for concurrent access
+- Provides <1ms read access for MCP handlers (vs 25+ seconds for direct Docker API calls)
+- Model calls `cpuCache.Update()` after updating its own `cpuCurrent` map
+- MCP tools call `cpuCache.Get()` for instant CPU data retrieval
+
+**Performance**: MCP `list_containers` responds in ~6ms (CPU fetch: 0ms from cache)
+
 ### Keyboard Shortcuts
 **Navigation:**
 - Up/Down arrows - Navigate container list
@@ -128,6 +142,7 @@ CPU percentage calculation (can exceed 100%):
 
 **View/Filtering:**
 - Enter/L - Show logs for selected containers
+- M - Show MCP server logs (only when MCP server is running)
 - / - Enter filter mode (regex)
 - Esc - Exit filter mode or clear active filter
 - Q - Quit application (with confirmation)

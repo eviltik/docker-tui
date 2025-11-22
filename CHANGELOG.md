@@ -17,6 +17,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - MCP server status display in header bar (shows "MCP: ON (:port)" when active)
 - Comprehensive keyboard shortcuts documentation in CLAUDE.md
 - Status bar section in documentation
+- CPU stats cache for instant MCP responses (shared between model and MCP server)
+- MCP logs viewer accessible with `M` key when MCP server is running
+- Real-time MCP client tracking with session management
 
 ### Improved
 - Keyboard shortcuts now follow more intuitive Unix-style conventions:
@@ -26,6 +29,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `P` - Pause/Unpause
   - `D` - Remove (Delete)
 - Help text updated to show `[K] Kill (Stop)` for clarity
+- **MCP Performance**: Optimized list_containers from 25+ seconds to ~6ms using CPU cache
+- **Resource Management**: Fixed critical file descriptor leaks in CPU stats fetching
+- **Concurrency**: Fixed race conditions in LogBroker semaphore and container data access
+- **Memory Safety**: Fixed BufferConsumer goroutine leaks on view transitions
+- **Reliability**: Added defer cleanup for MCP log file on error paths
+
+### Fixed
+- Critical semaphore bypass in LogBroker allowing unlimited goroutine accumulation
+- File descriptor leak in fetchCPUStats when Docker API calls timeout
+- TOCTOU race condition on mcpServer nil check during rendering
+- Shallow copy race in containerListMsg causing potential data corruption
+- Log file descriptor leak when MCP server initialization fails
+- BufferConsumer not properly cleaned up when entering logs view multiple times
 
 ## [1.0.0] - 2025-01-22
 
