@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"sync"
 	"time"
 
 	"github.com/ThinkInAIXYZ/go-mcp/protocol"
@@ -20,23 +21,26 @@ var BuildTime = "unknown"
 
 // MCPServer manages the MCP HTTP server with StreamableHTTPServerTransport
 type MCPServer struct {
-	dockerClient   *client.Client
-	logBroker      *LogBroker
-	rateTracker    *RateTrackerConsumer
-	mcpServer      *server.Server
-	httpServer     *http.Server
-	port           int
-	shutdownCtx    context.Context
-	shutdownCancel context.CancelFunc
+	dockerClient      *client.Client
+	logBroker         *LogBroker
+	rateTracker       *RateTrackerConsumer
+	mcpServer         *server.Server
+	httpServer        *http.Server
+	port              int
+	shutdownCtx       context.Context
+	shutdownCancel    context.CancelFunc
+	activeSessions    map[string]time.Time // Track active client sessions (sessionID -> lastSeen)
+	sessionsmu        sync.RWMutex         // Protect activeSessions map
 }
 
 // NewMCPServer creates a new MCP server instance using go-mcp with StreamableHTTPServerTransport
 func NewMCPServer(dockerClient *client.Client, logBroker *LogBroker, rateTracker *RateTrackerConsumer, port int) (*MCPServer, error) {
 	s := &MCPServer{
-		dockerClient: dockerClient,
-		logBroker:    logBroker,
-		rateTracker:  rateTracker,
-		port:         port,
+		dockerClient:   dockerClient,
+		logBroker:      logBroker,
+		rateTracker:    rateTracker,
+		port:           port,
+		activeSessions: make(map[string]time.Time),
 	}
 
 	// Create StreamableHTTPServerTransport (stateful mode with SSE support)
@@ -93,6 +97,10 @@ func (s *MCPServer) Start() error {
 		ticker := time.NewTicker(5 * time.Second)
 		defer ticker.Stop()
 
+		// Cleanup stale MCP sessions every 10 seconds
+		cleanupTicker := time.NewTicker(10 * time.Second)
+		defer cleanupTicker.Stop()
+
 		for {
 			select {
 			case <-ticker.C:
@@ -104,6 +112,9 @@ func (s *MCPServer) Start() error {
 				if err == nil {
 					s.logBroker.StartStreaming(containers)
 				}
+			case <-cleanupTicker.C:
+				// Clean up stale MCP sessions
+				s.cleanupStaleSessions()
 			case <-s.shutdownCtx.Done():
 				// CRITICAL FIX: Exit goroutine cleanly on shutdown
 				return
@@ -128,6 +139,53 @@ func (s *MCPServer) Shutdown(ctx context.Context) error {
 // GetPort returns the MCP server port
 func (s *MCPServer) GetPort() int {
 	return s.port
+}
+
+// GetConnectedClients returns the number of currently connected MCP clients
+// Sessions are considered active if they had activity in the last 30 seconds
+func (s *MCPServer) GetConnectedClients() int {
+	s.sessionsmu.RLock()
+	defer s.sessionsmu.RUnlock()
+
+	// Clean up stale sessions (no activity for 30 seconds)
+	now := time.Now()
+	activeCount := 0
+	for _, lastSeen := range s.activeSessions {
+		if now.Sub(lastSeen) < 30*time.Second {
+			activeCount++
+		}
+	}
+	return activeCount
+}
+
+// recordActivity records activity for a client session
+func (s *MCPServer) recordActivity(sessionID string) {
+	s.sessionsmu.Lock()
+	defer s.sessionsmu.Unlock()
+
+	wasNew := false
+	if _, exists := s.activeSessions[sessionID]; !exists {
+		wasNew = true
+	}
+	s.activeSessions[sessionID] = time.Now()
+
+	if wasNew {
+		log.Printf("MCP new session: %s (total active: %d)", sessionID[:8], len(s.activeSessions))
+	}
+}
+
+// cleanupStaleSessions removes sessions with no activity in the last 30 seconds
+func (s *MCPServer) cleanupStaleSessions() {
+	s.sessionsmu.Lock()
+	defer s.sessionsmu.Unlock()
+
+	now := time.Now()
+	for sessionID, lastSeen := range s.activeSessions {
+		if now.Sub(lastSeen) > 30*time.Second {
+			delete(s.activeSessions, sessionID)
+			log.Printf("MCP session expired: %s (total active: %d)", sessionID[:8], len(s.activeSessions))
+		}
+	}
 }
 
 // handleHealth responds to GET /health requests

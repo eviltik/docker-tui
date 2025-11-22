@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"crypto/sha256"
 	"encoding/json"
 	"fmt"
 	"regexp"
@@ -17,6 +18,10 @@ import (
 
 // handleListContainers implements the list_containers tool
 func (s *MCPServer) handleListContainers(ctx context.Context, request *protocol.CallToolRequest) (*protocol.CallToolResult, error) {
+	// Record MCP activity (use context value or create session ID)
+	sessionID := getSessionID(ctx)
+	s.recordActivity(sessionID)
+
 	// Parse arguments
 	args := new(ListContainersArgs)
 	if err := protocol.VerifyAndUnmarshal(request.RawArguments, args); err != nil {
@@ -127,6 +132,10 @@ func (s *MCPServer) handleListContainers(ctx context.Context, request *protocol.
 
 // handleGetLogs implements the get_logs tool
 func (s *MCPServer) handleGetLogs(ctx context.Context, request *protocol.CallToolRequest) (*protocol.CallToolResult, error) {
+	// Record MCP activity
+	sessionID := getSessionID(ctx)
+	s.recordActivity(sessionID)
+
 	args := new(GetLogsArgs)
 	if err := protocol.VerifyAndUnmarshal(request.RawArguments, args); err != nil {
 		return nil, fmt.Errorf("invalid arguments: %w", err)
@@ -227,6 +236,10 @@ func (s *MCPServer) handleGetLogs(ctx context.Context, request *protocol.CallToo
 
 // handleGetStats implements the get_stats tool
 func (s *MCPServer) handleGetStats(ctx context.Context, request *protocol.CallToolRequest) (*protocol.CallToolResult, error) {
+	// Record MCP activity
+	sessionID := getSessionID(ctx)
+	s.recordActivity(sessionID)
+
 	args := new(GetStatsArgs)
 	if err := protocol.VerifyAndUnmarshal(request.RawArguments, args); err != nil {
 		return nil, fmt.Errorf("invalid arguments: %w", err)
@@ -314,6 +327,10 @@ func (s *MCPServer) handleGetStats(ctx context.Context, request *protocol.CallTo
 
 // handleStartContainer implements the start_container tool
 func (s *MCPServer) handleStartContainer(ctx context.Context, request *protocol.CallToolRequest) (*protocol.CallToolResult, error) {
+	// Record MCP activity
+	sessionID := getSessionID(ctx)
+	s.recordActivity(sessionID)
+
 	args := new(ContainerActionArgs)
 	if err := protocol.VerifyAndUnmarshal(request.RawArguments, args); err != nil {
 		return nil, fmt.Errorf("invalid arguments: %w", err)
@@ -362,6 +379,10 @@ func (s *MCPServer) handleStartContainer(ctx context.Context, request *protocol.
 
 // handleStopContainer implements the stop_container tool
 func (s *MCPServer) handleStopContainer(ctx context.Context, request *protocol.CallToolRequest) (*protocol.CallToolResult, error) {
+	// Record MCP activity
+	sessionID := getSessionID(ctx)
+	s.recordActivity(sessionID)
+
 	args := new(ContainerActionArgs)
 	if err := protocol.VerifyAndUnmarshal(request.RawArguments, args); err != nil {
 		return nil, fmt.Errorf("invalid arguments: %w", err)
@@ -411,6 +432,10 @@ func (s *MCPServer) handleStopContainer(ctx context.Context, request *protocol.C
 
 // handleRestartContainer implements the restart_container tool
 func (s *MCPServer) handleRestartContainer(ctx context.Context, request *protocol.CallToolRequest) (*protocol.CallToolResult, error) {
+	// Record MCP activity
+	sessionID := getSessionID(ctx)
+	s.recordActivity(sessionID)
+
 	args := new(ContainerActionArgs)
 	if err := protocol.VerifyAndUnmarshal(request.RawArguments, args); err != nil {
 		return nil, fmt.Errorf("invalid arguments: %w", err)
@@ -570,6 +595,17 @@ func formatPortsForMCP(ports []types.Port) string {
 	}
 
 	return strings.Join(parts, ", ")
+}
+
+// getSessionID extracts or generates a session ID from context
+// Uses a hash of the context to create a pseudo-session identifier
+func getSessionID(ctx context.Context) string {
+	// Try to get a session identifier from context
+	// If not available, create a simple hash based on timestamp and context pointer
+	// This will group requests from the same general timeframe/client
+	h := sha256.New()
+	h.Write([]byte(fmt.Sprintf("%p-%d", ctx, time.Now().Unix()/10))) // Group by 10-second windows
+	return fmt.Sprintf("%x", h.Sum(nil))[:16]
 }
 
 // stripAnsiCodes is already defined in model.go

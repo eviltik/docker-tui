@@ -413,7 +413,8 @@ func (m *model) renderList() string {
 	// Add MCP status if MCP server is running
 	if m.mcpServer != nil {
 		mcpPort := m.mcpServer.GetPort()
-		stats += fmt.Sprintf(" │ MCP: ON (:%d)", mcpPort)
+		mcpClients := m.mcpServer.GetConnectedClients()
+		stats += fmt.Sprintf(" │ MCP: %d clients (:%d)", mcpClients, mcpPort)
 	}
 
 	// Add debug metrics if debug monitoring is enabled
