@@ -21,6 +21,7 @@ const (
 	logsView
 	confirmView
 	exitConfirmView
+	mcpLogsView
 )
 
 // Messages
@@ -74,6 +75,7 @@ type model struct {
 	logBroker   *LogBroker           // Central broker for all logs
 	rateTracker *RateTrackerConsumer // Permanent tracker for L/S column
 	mcpServer   *MCPServer           // MCP server instance (nil if not running)
+	cpuCache    *CPUStatsCache       // Shared CPU cache for MCP instant responses
 
 	// BufferConsumer for logsView (temporary)
 	bufferConsumer       *BufferConsumer // Buffer for logsView (nil when not in logsView)
@@ -263,7 +265,19 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		for containerID, rawStats := range msg.rawStats {
 			m.cpuPrevStats[containerID] = rawStats
 		}
+
+		// CRITICAL: Update shared CPU cache for instant MCP responses
+		// Make a copy of cpuCurrent to avoid holding the lock while updating cache
+		cpuCurrentCopy := make(map[string]float64, len(m.cpuCurrent))
+		for k, v := range m.cpuCurrent {
+			cpuCurrentCopy[k] = v
+		}
 		m.cpuStatsMu.Unlock()
+
+		// Update cache outside of lock to avoid potential deadlock
+		if m.cpuCache != nil {
+			m.cpuCache.Update(cpuCurrentCopy)
+		}
 
 		return m, nil
 
@@ -559,6 +573,8 @@ func (m *model) View() string {
 		return m.renderConfirm()
 	case logsView:
 		return m.renderLogs()
+	case mcpLogsView:
+		return m.renderMCPLogs()
 	default:
 		return m.renderList()
 	}

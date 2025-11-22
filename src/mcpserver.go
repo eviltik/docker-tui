@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
+	"os"
+	"strings"
 	"sync"
 	"time"
 
@@ -19,11 +22,123 @@ import (
 var Version = "dev"
 var BuildTime = "unknown"
 
+// mcpCustomLogger implements pkg.Logger interface and writes to both file and buffer
+type mcpCustomLogger struct {
+	logBuffer *MCPLogBuffer
+	logFile   *os.File
+}
+
+func (l *mcpCustomLogger) Debugf(format string, a ...any) {
+	msg := fmt.Sprintf("[Debug] "+format, a...)
+	l.writeLog(msg)
+}
+
+func (l *mcpCustomLogger) Infof(format string, a ...any) {
+	msg := fmt.Sprintf("[Info] "+format, a...)
+	l.writeLog(msg)
+}
+
+func (l *mcpCustomLogger) Warnf(format string, a ...any) {
+	msg := fmt.Sprintf("[Warn] "+format, a...)
+	l.writeLog(msg)
+}
+
+func (l *mcpCustomLogger) Errorf(format string, a ...any) {
+	msg := fmt.Sprintf("[Error] "+format, a...)
+	l.writeLog(msg)
+}
+
+func (l *mcpCustomLogger) writeLog(msg string) {
+	// Write to buffer (for UI display)
+	l.logBuffer.Add(msg)
+
+	// Write to file with timestamp
+	if l.logFile != nil {
+		timestamp := time.Now().Format("2006/01/02 15:04:05")
+		fmt.Fprintf(l.logFile, "%s %s\n", timestamp, msg)
+	}
+}
+
+// MCPLogBuffer stores MCP server logs in a circular buffer
+type MCPLogBuffer struct {
+	logs   []string
+	mu     sync.RWMutex
+	maxLen int
+}
+
+// NewMCPLogBuffer creates a new log buffer
+func NewMCPLogBuffer(maxLen int) *MCPLogBuffer {
+	return &MCPLogBuffer{
+		logs:   make([]string, 0, maxLen),
+		maxLen: maxLen,
+	}
+}
+
+// Add adds a log entry to the buffer (circular, oldest removed if full)
+func (b *MCPLogBuffer) Add(entry string) {
+	b.mu.Lock()
+	defer b.mu.Unlock()
+
+	// Remove timestamp prefix if present and clean up
+	entry = strings.TrimSpace(entry)
+	if entry == "" {
+		return
+	}
+
+	// Add timestamp
+	timestamped := fmt.Sprintf("[%s] %s", time.Now().Format("15:04:05"), entry)
+
+	// Add to buffer
+	b.logs = append(b.logs, timestamped)
+
+	// Remove oldest if exceeds max
+	if len(b.logs) > b.maxLen {
+		b.logs = b.logs[1:]
+	}
+}
+
+// GetLogs returns a copy of all logs
+func (b *MCPLogBuffer) GetLogs() []string {
+	b.mu.RLock()
+	defer b.mu.RUnlock()
+
+	// Return copy
+	logsCopy := make([]string, len(b.logs))
+	copy(logsCopy, b.logs)
+	return logsCopy
+}
+
+// mcpLogWriter implements io.Writer to capture log output
+type mcpLogWriter struct {
+	buffer       *MCPLogBuffer
+	originalOut  io.Writer
+	suppressOut  bool // If true, don't write to original output
+	logFile      *os.File // Also write to file
+}
+
+func (w *mcpLogWriter) Write(p []byte) (n int, err error) {
+	// Add to buffer
+	w.buffer.Add(string(p))
+
+	// Also write to file if available
+	if w.logFile != nil {
+		w.logFile.Write(p)
+	}
+
+	// Also write to original output if not suppressed
+	if !w.suppressOut && w.originalOut != nil {
+		return w.originalOut.Write(p)
+	}
+
+	return len(p), nil
+}
+
 // MCPServer manages the MCP HTTP server with StreamableHTTPServerTransport
 type MCPServer struct {
 	dockerClient      *client.Client
 	logBroker         *LogBroker
 	rateTracker       *RateTrackerConsumer
+	cpuCache          *CPUStatsCache       // CPU stats cache for instant responses
 	mcpServer         *server.Server
 	httpServer        *http.Server
 	port              int
@@ -31,16 +146,50 @@ type MCPServer struct {
 	shutdownCancel    context.CancelFunc
 	activeSessions    map[string]time.Time // Track active client sessions (sessionID -> lastSeen)
 	sessionsmu        sync.RWMutex         // Protect activeSessions map
+	logBuffer         *MCPLogBuffer        // Buffer for MCP server logs
+	originalLogger    *log.Logger          // Original logger to restore on shutdown
 }
 
 // NewMCPServer creates a new MCP server instance using go-mcp with StreamableHTTPServerTransport
-func NewMCPServer(dockerClient *client.Client, logBroker *LogBroker, rateTracker *RateTrackerConsumer, port int) (*MCPServer, error) {
+func NewMCPServer(dockerClient *client.Client, logBroker *LogBroker, rateTracker *RateTrackerConsumer, cpuCache *CPUStatsCache, port int) (*MCPServer, error) {
+	// Create log buffer (keep last 50 entries)
+	logBuffer := NewMCPLogBuffer(50)
+
+	// Save original stderr
+	originalLogger := log.New(os.Stderr, "", log.LstdFlags)
+
+	// Open log file
+	logFile, err := os.OpenFile("/tmp/mcp-debug.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
+	if err != nil {
+		return nil, fmt.Errorf("failed to open log file: %w", err)
+	}
+
+	// Create custom writer that captures logs in buffer AND file, but suppresses stdout
+	logWriter := &mcpLogWriter{
+		buffer:      logBuffer,
+		originalOut: nil, // Set to nil to suppress stdout for MCP logs
+		suppressOut: true,
+		logFile:     logFile, // Write to file
+	}
+
+	// Redirect standard log output to our custom writer
+	log.SetOutput(logWriter)
+	log.SetFlags(0) // We add our own timestamps in MCPLogBuffer.Add()
+
 	s := &MCPServer{
 		dockerClient:   dockerClient,
 		logBroker:      logBroker,
 		rateTracker:    rateTracker,
+		cpuCache:       cpuCache,
 		port:           port,
 		activeSessions: make(map[string]time.Time),
+		logBuffer:      logBuffer,
+		originalLogger: originalLogger,
+	}
+
+	customLogger := &mcpCustomLogger{
+		logBuffer: logBuffer,
+		logFile:   logFile,
 	}
 
 	// Create StreamableHTTPServerTransport (stateful mode with SSE support)
@@ -48,10 +197,15 @@ func NewMCPServer(dockerClient *client.Client, logBroker *LogBroker, rateTracker
 		fmt.Sprintf(":%d", port),
 		transport.WithStreamableHTTPServerTransportOptionEndpoint("/mcp"),
 		transport.WithStreamableHTTPServerTransportOptionStateMode(transport.Stateful),
+		transport.WithStreamableHTTPServerTransportOptionLogger(customLogger),
 	)
 
+	// CRITICAL: Re-apply log redirection after transport creation
+	// The transport may have reset the logger during initialization
+	log.SetOutput(logWriter)
+	log.SetFlags(0)
+
 	// Create MCP server with metadata
-	var err error
 	s.mcpServer, err = server.NewServer(
 		mcpTransport,
 		server.WithServerInfo(protocol.Implementation{
@@ -133,6 +287,7 @@ func (s *MCPServer) Shutdown(ctx context.Context) error {
 	if s.shutdownCancel != nil {
 		s.shutdownCancel()
 	}
+
 	return s.mcpServer.Shutdown(ctx)
 }
 
@@ -156,6 +311,14 @@ func (s *MCPServer) GetConnectedClients() int {
 		}
 	}
 	return activeCount
+}
+
+// GetLogs returns the MCP server logs
+func (s *MCPServer) GetLogs() []string {
+	if s.logBuffer == nil {
+		return []string{}
+	}
+	return s.logBuffer.GetLogs()
 }
 
 // recordActivity records activity for a client session

@@ -337,7 +337,11 @@ func (m *model) renderList() string {
 	// Calculate reserved lines at bottom
 	// Help bar text (used later for rendering)
 	selectionHelp := "[SPACE] Select  [A] All  [Ctrl+A] Running  [X] Clear  [I] Invert"
-	actionsHelp := "[ENTER/L] Logs  [S] Start  [K] Kill (Stop)  [R] Restart  [P] Pause  [D] Remove  [/] Filter  [Q/ESC] Quit"
+	actionsHelp := "[ENTER/L] Logs  [S] Start  [K] Kill (Stop)  [R] Restart  [P] Pause  [D] Remove  [/] Filter"
+	if m.mcpServer != nil {
+		actionsHelp += "  [M] MCP Logs"
+	}
+	actionsHelp += "  [Q/ESC] Quit"
 
 	// Fixed bottom lines: blank line + toast + blank line + help bar = 4 lines
 	bottomLines := 4
@@ -617,4 +621,50 @@ func (m *model) renderList() string {
 	}
 
 	return sb.String()
+}
+
+// renderMCPLogs renders the MCP server logs popup
+func (m *model) renderMCPLogs() string {
+	var sb strings.Builder
+
+	// Get logs from MCP server
+	var logs []string
+	if m.mcpServer != nil {
+		logs = m.mcpServer.GetLogs()
+	}
+
+	// Build popup content
+	title := "📡 MCP Server Logs"
+	separator := strings.Repeat("─", 120)
+
+	sb.WriteString(title + "\n")
+	sb.WriteString(separator + "\n\n")
+
+	if len(logs) == 0 {
+		sb.WriteString("No logs available\n")
+	} else {
+		// Show last 50 logs (already limited by buffer)
+		for _, log := range logs {
+			sb.WriteString(log + "\n")
+		}
+	}
+
+	sb.WriteString("\n" + separator + "\n")
+	sb.WriteString("Press ESC or Q to close")
+
+	// Center the popup
+	content := sb.String()
+	boxStyle := lipgloss.NewStyle().
+		Border(lipgloss.RoundedBorder()).
+		BorderForeground(lipgloss.Color(colorProcess)).
+		Padding(1, 2).
+		Width(124)
+
+	return lipgloss.Place(
+		m.width,
+		m.height,
+		lipgloss.Center,
+		lipgloss.Center,
+		boxStyle.Render(content),
+	)
 }

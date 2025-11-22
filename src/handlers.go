@@ -53,6 +53,9 @@ func (m *model) handleKeyPress(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	case logsView:
 		return m.handleLogsViewKeys(msg)
 
+	case mcpLogsView:
+		return m.handleMCPLogsViewKeys(msg)
+
 	case listView:
 		return m.handleListViewKeys(msg)
 	}

@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"log"
 	"regexp"
 	"sort"
 	"strings"
@@ -18,24 +19,36 @@ import (
 
 // handleListContainers implements the list_containers tool
 func (s *MCPServer) handleListContainers(ctx context.Context, request *protocol.CallToolRequest) (*protocol.CallToolResult, error) {
+	startTime := time.Now()
+	log.Printf("[TRACE] handleListContainers START at %s", startTime.Format("15:04:05.000"))
+
 	// Record MCP activity (use context value or create session ID)
 	sessionID := getSessionID(ctx)
 	s.recordActivity(sessionID)
+	log.Printf("Tool: %s", request.Name)
 
 	// Parse arguments
+	log.Printf("[TRACE] Parsing arguments...")
 	args := new(ListContainersArgs)
 	if err := protocol.VerifyAndUnmarshal(request.RawArguments, args); err != nil {
 		return nil, fmt.Errorf("invalid arguments: %w", err)
 	}
+	log.Printf("[TRACE] Arguments parsed in %dms", time.Since(startTime).Milliseconds())
 
 	// Load containers
+	log.Printf("[TRACE] Loading containers...")
+	t1 := time.Now()
 	containers, err := loadContainersSync(s.dockerClient)
 	if err != nil {
 		return nil, fmt.Errorf("failed to load containers: %w", err)
 	}
+	log.Printf("[TRACE] Loaded %d containers in %dms", len(containers), time.Since(t1).Milliseconds())
 
-	// Fetch CPU stats for running containers
-	cpuStats, _ := fetchCPUStatsSync(s.dockerClient, containers)
+	// Get CPU stats from cache (instant, no Docker API call)
+	log.Printf("[TRACE] Getting CPU stats from cache...")
+	t2 := time.Now()
+	cpuStats := s.cpuCache.Get()
+	log.Printf("[TRACE] Got CPU stats from cache in %dms", time.Since(t2).Milliseconds())
 
 	// Filter containers
 	var filtered []types.Container
@@ -79,10 +92,10 @@ func (s *MCPServer) handleListContainers(ctx context.Context, request *protocol.
 			name = c.ID[:12] // Fallback to short ID
 		}
 
-		// Get CPU percentage
+		// Get CPU percentage (cpuStats now returns current values directly, not history)
 		cpuPct := "0.0"
-		if cpu, ok := cpuStats[c.ID]; ok && len(cpu) > 0 {
-			cpuPct = fmt.Sprintf("%.1f", cpu[len(cpu)-1])
+		if cpu, ok := cpuStats[c.ID]; ok {
+			cpuPct = fmt.Sprintf("%.1f", cpu)
 		}
 
 		// Get log rate
@@ -115,10 +128,15 @@ func (s *MCPServer) handleListContainers(ctx context.Context, request *protocol.
 	}
 
 	// Convert to JSON
+	log.Printf("[TRACE] Marshalling JSON...")
+	t3 := time.Now()
 	jsonOutput, err := json.MarshalIndent(result, "", "  ")
 	if err != nil {
 		return nil, fmt.Errorf("failed to marshal result: %w", err)
 	}
+	log.Printf("[TRACE] Marshalled JSON in %dms", time.Since(t3).Milliseconds())
+
+	log.Printf("[TRACE] handleListContainers COMPLETE in %dms", time.Since(startTime).Milliseconds())
 
 	return &protocol.CallToolResult{
 		Content: []protocol.Content{
@@ -135,6 +153,7 @@ func (s *MCPServer) handleGetLogs(ctx context.Context, request *protocol.CallToo
 	// Record MCP activity
 	sessionID := getSessionID(ctx)
 	s.recordActivity(sessionID)
+	log.Printf("Tool: %s", request.Name)
 
 	args := new(GetLogsArgs)
 	if err := protocol.VerifyAndUnmarshal(request.RawArguments, args); err != nil {
@@ -239,6 +258,7 @@ func (s *MCPServer) handleGetStats(ctx context.Context, request *protocol.CallTo
 	// Record MCP activity
 	sessionID := getSessionID(ctx)
 	s.recordActivity(sessionID)
+	log.Printf("Tool: %s", request.Name)
 
 	args := new(GetStatsArgs)
 	if err := protocol.VerifyAndUnmarshal(request.RawArguments, args); err != nil {
@@ -330,6 +350,7 @@ func (s *MCPServer) handleStartContainer(ctx context.Context, request *protocol.
 	// Record MCP activity
 	sessionID := getSessionID(ctx)
 	s.recordActivity(sessionID)
+	log.Printf("Tool: %s", request.Name)
 
 	args := new(ContainerActionArgs)
 	if err := protocol.VerifyAndUnmarshal(request.RawArguments, args); err != nil {
@@ -382,6 +403,7 @@ func (s *MCPServer) handleStopContainer(ctx context.Context, request *protocol.C
 	// Record MCP activity
 	sessionID := getSessionID(ctx)
 	s.recordActivity(sessionID)
+	log.Printf("Tool: %s", request.Name)
 
 	args := new(ContainerActionArgs)
 	if err := protocol.VerifyAndUnmarshal(request.RawArguments, args); err != nil {
@@ -435,6 +457,7 @@ func (s *MCPServer) handleRestartContainer(ctx context.Context, request *protoco
 	// Record MCP activity
 	sessionID := getSessionID(ctx)
 	s.recordActivity(sessionID)
+	log.Printf("Tool: %s", request.Name)
 
 	args := new(ContainerActionArgs)
 	if err := protocol.VerifyAndUnmarshal(request.RawArguments, args); err != nil {

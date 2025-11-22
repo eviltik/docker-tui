@@ -328,6 +328,13 @@ func (m *model) handleListViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, m.performAction("pause")
 
+	case "m", "M":
+		// Show MCP server logs popup (only if MCP server is running)
+		if m.mcpServer != nil {
+			m.view = mcpLogsView
+			return m, nil
+		}
+
 	case "d", "D":
 		selected := m.getSelectedIDs()
 		if len(selected) == 0 {

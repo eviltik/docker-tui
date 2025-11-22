@@ -133,11 +133,15 @@ func main() {
 		}
 	})
 
+	// Create CPU stats cache for instant MCP responses
+	// NOTE: No automatic refresh - model updates the cache when it receives CPU stats
+	cpuCache := NewCPUStatsCache(cli, 5*time.Second)
+
 	// Start MCP server if requested
 	var mcpServer *MCPServer
 	var mcpErrChan chan error
 	if mcpServerMode {
-		mcpServer, err = NewMCPServer(cli, logBroker, rateTracker, mcpPort)
+		mcpServer, err = NewMCPServer(cli, logBroker, rateTracker, cpuCache, mcpPort)
 		if err != nil {
 			fmt.Printf("Error creating MCP server: %v\n", err)
 			os.Exit(1)
@@ -189,7 +193,6 @@ func main() {
 
 		// Start MCP server in background (TUI mode) with crash protection
 		safeGo("mcp-server-tui-mode", func() {
-			fmt.Printf("Starting MCP HTTP server on port %d...\n", mcpPort)
 			if err := mcpServer.Start(); err != nil {
 				mcpErrChan <- err
 			}
@@ -228,6 +231,7 @@ func main() {
 		logBroker:        logBroker,
 		rateTracker:      rateTracker,
 		mcpServer:        mcpServer, // May be nil if not running
+		cpuCache:         cpuCache,  // Shared CPU cache for instant MCP responses
 	}
 
 	// Setup signal handling for graceful shutdown
