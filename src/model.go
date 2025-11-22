@@ -73,6 +73,7 @@ type model struct {
 	// LogBroker architecture (permanent streaming)
 	logBroker   *LogBroker           // Central broker for all logs
 	rateTracker *RateTrackerConsumer // Permanent tracker for L/S column
+	mcpServer   *MCPServer           // MCP server instance (nil if not running)
 
 	// BufferConsumer for logsView (temporary)
 	bufferConsumer       *BufferConsumer // Buffer for logsView (nil when not in logsView)

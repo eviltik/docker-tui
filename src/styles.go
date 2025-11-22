@@ -46,8 +46,7 @@ var (
 			Foreground(lipgloss.Color(colorProcess))
 
 	statusBarStyle = lipgloss.NewStyle().
-			Foreground(lipgloss.Color(fgBright)).
-			Background(lipgloss.Color(bgBorder))
+			Foreground(lipgloss.Color(fgBright))
 
 	selectedStyle = lipgloss.NewStyle().
 			Foreground(lipgloss.Color(colorWarning)).

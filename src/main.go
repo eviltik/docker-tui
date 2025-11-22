@@ -227,6 +227,7 @@ func main() {
 		logsColorEnabled: true, // Enable colored backgrounds in logs by default
 		logBroker:        logBroker,
 		rateTracker:      rateTracker,
+		mcpServer:        mcpServer, // May be nil if not running
 	}
 
 	// Setup signal handling for graceful shutdown

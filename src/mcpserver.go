@@ -125,6 +125,11 @@ func (s *MCPServer) Shutdown(ctx context.Context) error {
 	return s.mcpServer.Shutdown(ctx)
 }
 
+// GetPort returns the MCP server port
+func (s *MCPServer) GetPort() int {
+	return s.port
+}
+
 // handleHealth responds to GET /health requests
 func (s *MCPServer) handleHealth(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {

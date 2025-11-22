@@ -410,6 +410,12 @@ func (m *model) renderList() string {
 		stats += fmt.Sprintf(" │ Hidden: %d", hiddenCount)
 	}
 
+	// Add MCP status if MCP server is running
+	if m.mcpServer != nil {
+		mcpPort := m.mcpServer.GetPort()
+		stats += fmt.Sprintf(" │ MCP: ON (:%d)", mcpPort)
+	}
+
 	// Add debug metrics if debug monitoring is enabled
 	if m.debugMonitor {
 		stats += " │ " + m.renderDebugMetrics()

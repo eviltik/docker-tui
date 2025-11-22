@@ -12,7 +12,7 @@ import (
 func (m *model) handleListViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 	switch msg.String() {
 	// Handle Shift+Up/Down for range selection FIRST
-	case "shift+up", "shift+k":
+	case "shift+up":
 		// CRITICAL FIX: Protect read of m.containers during range selection
 		m.containersMu.RLock()
 		containersLen := len(m.containers)
@@ -48,7 +48,7 @@ func (m *model) handleListViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, nil
 
-	case "shift+down", "shift+j":
+	case "shift+down":
 		// CRITICAL FIX: Protect read of m.containers during range selection
 		m.containersMu.RLock()
 		containersLen := len(m.containers)
@@ -102,13 +102,13 @@ func (m *model) handleListViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		m.view = exitConfirmView
 		return m, nil
 
-	case "up", "k":
+	case "up":
 		if m.cursor > 0 {
 			m.cursor--
 			m.shiftStart = -1
 		}
 
-	case "down", "j":
+	case "down":
 		m.containersMu.RLock()
 		containersLen := len(m.containers)
 		m.containersMu.RUnlock()
