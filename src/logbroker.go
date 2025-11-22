@@ -285,7 +285,7 @@ func (lb *LogBroker) streamContainer(ctx context.Context, containerID, container
 				consecutiveTimeouts++
 				closeOnce.Do(closeReader)
 				streamBroken = true
-				break
+				continue // CRITICAL FIX: Skip goroutine launch without semaphore
 			}
 
 			// Launch read in goroutine with guaranteed cleanup

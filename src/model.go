@@ -225,9 +225,10 @@ func (m *model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		m.processingMu.Unlock()
 
 		// Update log streaming with the new container list
-		// CRITICAL FIX: Read containers with mutex protection
+		// CRITICAL FIX: Deep copy containers to prevent race on container data
 		m.containersMu.RLock()
-		containersCopy := m.containers
+		containersCopy := make([]types.Container, len(m.containers))
+		copy(containersCopy, m.containers)
 		m.containersMu.RUnlock()
 
 		if m.logBroker != nil {

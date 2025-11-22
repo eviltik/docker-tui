@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"sort"
 	"strings"
 	"sync"
@@ -296,10 +297,12 @@ func fetchCPUStats(cli *client.Client, containers []types.Container, prevStats m
 				containerID := c.ID
 				containerName := c.Names[0]
 				stats, err := cli.ContainerStats(ctx, containerID, false)
-				// CRITICAL FIX: Close body IMMEDIATELY after call, even on error
-				// Must happen before any early returns to prevent file descriptor leak
+				// CRITICAL FIX: Close body after draining to prevent FD leak on error/timeout
 				if stats.Body != nil {
-					defer stats.Body.Close()
+					defer func() {
+						io.Copy(io.Discard, stats.Body) // Drain any remaining data
+						stats.Body.Close()
+					}()
 				}
 				if err != nil {
 					// Non-blocking send with context check

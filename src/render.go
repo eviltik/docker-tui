@@ -415,9 +415,11 @@ func (m *model) renderList() string {
 	}
 
 	// Add MCP status if MCP server is running
-	if m.mcpServer != nil {
-		mcpPort := m.mcpServer.GetPort()
-		mcpClients := m.mcpServer.GetConnectedClients()
+	// CRITICAL FIX: Copy pointer to avoid TOCTOU race with nil dereference
+	mcpSrv := m.mcpServer
+	if mcpSrv != nil {
+		mcpPort := mcpSrv.GetPort()
+		mcpClients := mcpSrv.GetConnectedClients()
 		stats += fmt.Sprintf(" │ MCP: %d clients (:%d)", mcpClients, mcpPort)
 	}
 

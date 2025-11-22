@@ -162,8 +162,15 @@ func NewMCPServer(dockerClient *client.Client, logBroker *LogBroker, rateTracker
 	// Open log file
 	logFile, err := os.OpenFile("/tmp/mcp-debug.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0644)
 	if err != nil {
-		return nil, fmt.Errorf("failed to open log file: %w", err)
+		return nil, fmt.Errorf("failed to open log file /tmp/mcp-debug.log: %w", err)
 	}
+	// CRITICAL FIX: Ensure log file is closed on error paths
+	var logFileClosed bool
+	defer func() {
+		if !logFileClosed && logFile != nil {
+			logFile.Close()
+		}
+	}()
 
 	// Create custom writer that captures logs in buffer AND file, but suppresses stdout
 	logWriter := &mcpLogWriter{
@@ -231,6 +238,9 @@ func NewMCPServer(dockerClient *client.Client, logBroker *LogBroker, rateTracker
 	// Note: The StreamableHTTPServerTransport creates its own HTTP server internally
 	// We add a health check on a separate path
 	mux.HandleFunc("/health", s.handleHealth)
+
+	// CRITICAL FIX: Mark log file as successfully transferred to struct (no cleanup needed)
+	logFileClosed = true
 
 	return s, nil
 }
