@@ -115,6 +115,7 @@ docker-tui --help                             # Show help
 | `P` | Pause/Unpause selected container(s) |
 | `D` | Remove selected container(s) |
 | `/` | Filter containers (regex support) |
+| `M` | Show MCP server logs (when `--mcp-server` is active) |
 | `Q/ESC` | Quit (with confirmation) or clear filter |
 | `Ctrl+C` | Quit immediately |
 
@@ -241,6 +242,7 @@ Docker TUI includes a built-in MCP HTTP server that exposes Docker container man
 - **Real-time Log Streaming**: Shared LogBroker architecture for efficient log access
 - **Auto-refresh**: Container list updates every 5 seconds
 - **CORS Enabled**: Works with web-based AI assistants
+- **High Performance**: CPU stats cached for instant responses (~6ms for list_containers)
 
 ### Available Tools
 
@@ -436,6 +438,7 @@ docker-tui --mcp-server --mcp-port 9876
 - **Transport**: StreamableHTTPServerTransport from [go-mcp](https://github.com/ThinkInAIXYZ/go-mcp)
 - **Protocol**: JSON-RPC 2.0 with SSE support
 - **Log Streaming**: Shared LogBroker instance with the TUI
+- **CPU Stats Cache**: Shared cache updated every 5 seconds for instant MCP responses
 - **Auto-discovery**: Container list refreshes every 5 seconds
 - **Graceful Shutdown**: Proper cleanup on SIGINT/SIGTERM
 
