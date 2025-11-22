@@ -27,7 +27,7 @@ build-static:
 
 # Run the application
 run:
-	go run ./src
+	go run $(LDFLAGS) ./src
 
 # Watch and rebuild on changes (requires entr: apt install entr / brew install entr)
 watch:

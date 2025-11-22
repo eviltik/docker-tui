@@ -393,7 +393,7 @@ func (m *model) renderList() string {
 	}
 
 	// Header line: title on the left, stats on the right
-	title := titleStyle.Render("🐳 Docker TUI")
+	title := titleStyle.Render(fmt.Sprintf("🐳 Docker TUI %s", Version))
 
 	// Add filter indicator if filter is active
 	filterIndicator := ""
