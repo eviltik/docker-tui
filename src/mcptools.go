@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/json"
 	"fmt"
+	"io"
 	"log"
 	"regexp"
 	"sort"
@@ -549,8 +550,11 @@ func fetchCPUStatsSync(cli *client.Client, containers []types.Container) (map[st
 			if err != nil {
 				return
 			}
-			// CRITICAL FIX: Close body immediately after use (within closure scope)
-			defer stats.Body.Close()
+			// CRITICAL FIX: Close body after draining to prevent FD leak on error/timeout
+			defer func() {
+				io.Copy(io.Discard, stats.Body) // Drain any remaining data
+				stats.Body.Close()
+			}()
 
 			var v container.StatsResponse
 			if err := json.NewDecoder(stats.Body).Decode(&v); err != nil {

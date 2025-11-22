@@ -148,6 +148,7 @@ type MCPServer struct {
 	sessionsmu        sync.RWMutex         // Protect activeSessions map
 	logBuffer         *MCPLogBuffer        // Buffer for MCP server logs
 	originalLogger    *log.Logger          // Original logger to restore on shutdown
+	logFile           *os.File             // Log file handle (CRITICAL: must be closed on shutdown)
 }
 
 // NewMCPServer creates a new MCP server instance using go-mcp with StreamableHTTPServerTransport
@@ -185,6 +186,7 @@ func NewMCPServer(dockerClient *client.Client, logBroker *LogBroker, rateTracker
 		activeSessions: make(map[string]time.Time),
 		logBuffer:      logBuffer,
 		originalLogger: originalLogger,
+		logFile:        logFile, // Store for cleanup on shutdown
 	}
 
 	customLogger := &mcpCustomLogger{
@@ -286,6 +288,12 @@ func (s *MCPServer) Shutdown(ctx context.Context) error {
 	// CRITICAL FIX: Cancel background goroutine before shutting down server
 	if s.shutdownCancel != nil {
 		s.shutdownCancel()
+	}
+
+	// CRITICAL FIX: Close log file to prevent file descriptor leak
+	if s.logFile != nil {
+		s.logFile.Close()
+		s.logFile = nil
 	}
 
 	return s.mcpServer.Shutdown(ctx)

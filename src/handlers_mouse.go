@@ -105,6 +105,12 @@ func (m *model) handleMouseEvent(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 					m.logsViewScroll = 0
 					m.logsViewBuffer = []string{} // Reset buffer
 
+					// CRITICAL FIX: Cleanup old BufferConsumer if it exists (prevent leak)
+					if m.bufferConsumer != nil {
+						m.logBroker.UnregisterConsumer(m.bufferConsumer)
+						m.bufferConsumer = nil
+					}
+
 					// CRITICAL FIX: Create NEW sync.Once instance when entering logs view (double-click)
 					m.logChanCloseOnce = sync.Once{}
 					m.logChanClosing.Store(false)
