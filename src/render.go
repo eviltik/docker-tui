@@ -337,7 +337,7 @@ func (m *model) renderList() string {
 	// Calculate reserved lines at bottom
 	// Help bar text (used later for rendering)
 	selectionHelp := "[SPACE] Select  [A] All  [Ctrl+A] Running  [X] Clear  [I] Invert"
-	actionsHelp := "[ENTER/L] Logs  [S] Start  [P] Stop  [R] Restart  [U] Pause  [D] Remove  [/] Filter  [Q/ESC] Quit"
+	actionsHelp := "[ENTER/L] Logs  [S] Start  [K] Kill (Stop)  [R] Restart  [P] Pause  [D] Remove  [/] Filter  [Q/ESC] Quit"
 
 	// Fixed bottom lines: blank line + toast + blank line + help bar = 4 lines
 	bottomLines := 4

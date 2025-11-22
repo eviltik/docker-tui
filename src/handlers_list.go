@@ -304,7 +304,7 @@ func (m *model) handleListViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, m.performAction("start")
 
-	case "p", "P":
+	case "k", "K":
 		if m.countSelected() > 1 {
 			selected := m.getSelectedIDs()
 			m.showActionConfirmation("stop", selected)
@@ -320,7 +320,7 @@ func (m *model) handleListViewKeys(msg tea.KeyMsg) (tea.Model, tea.Cmd) {
 		}
 		return m, m.performAction("restart")
 
-	case "u", "U":
+	case "p", "P":
 		if m.countSelected() > 1 {
 			selected := m.getSelectedIDs()
 			m.showActionConfirmation("pause", selected)
