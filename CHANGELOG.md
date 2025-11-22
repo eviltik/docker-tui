@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.1.0] - 2025-01-22
+
 ### Changed
 - **BREAKING**: Keyboard shortcut for Stop changed from `P` to `K` (Kill)
 - **BREAKING**: Keyboard shortcut for Pause changed from `U` to `P`
