@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.1] - 2025-11-25
+
+### Fixed
+- **Duplicate logs on container restart**: Fixed issue where logs were displayed multiple times when a container restarted while viewing logs. The initial fetch state is now tracked per container at the LogBroker level instead of per goroutine.
+
 ## [1.2.0] - 2025-01-22
 
 ### Added

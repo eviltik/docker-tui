@@ -34,6 +34,11 @@ type LogBroker struct {
 	// CRITICAL GOROUTINE LEAK PREVENTION: Limit concurrent read goroutines
 	// Semaphore to prevent unlimited goroutine creation if Read() blocks
 	readSemaphore chan struct{}
+
+	// Track containers that have already had initial logs fetched
+	// This prevents duplicate logs when a container restarts
+	initialFetchDone map[string]bool
+	initialFetchMu   sync.RWMutex
 }
 
 // NewLogBroker creates a new LogBroker instance
@@ -44,11 +49,12 @@ func NewLogBroker(dockerClient *client.Client) *LogBroker {
 	const maxConcurrentReads = 200
 
 	return &LogBroker{
-		dockerClient:  dockerClient,
-		consumers:     []LogConsumer{},
-		activeStreams: make(map[string]context.CancelFunc),
-		containers:    []types.Container{},
-		readSemaphore: make(chan struct{}, maxConcurrentReads),
+		dockerClient:     dockerClient,
+		consumers:        []LogConsumer{},
+		activeStreams:    make(map[string]context.CancelFunc),
+		containers:       []types.Container{},
+		readSemaphore:    make(chan struct{}, maxConcurrentReads),
+		initialFetchDone: make(map[string]bool),
 	}
 }
 
@@ -153,7 +159,6 @@ func (lb *LogBroker) streamContainer(ctx context.Context, containerID, container
 	// Clean container name (remove leading slash)
 	containerName = strings.TrimPrefix(containerName, "/")
 
-	firstConnection := true
 	firstIteration := true
 	checkTicker := time.NewTicker(5 * time.Second)
 	defer checkTicker.Stop()
@@ -192,8 +197,14 @@ func (lb *LogBroker) streamContainer(ctx context.Context, containerID, container
 		}
 
 		// Stream logs with context timeout to prevent connection leaks
+		// Check if initial logs have already been fetched for this container
+		// This prevents duplicate logs when container restarts
+		lb.initialFetchMu.RLock()
+		alreadyFetched := lb.initialFetchDone[containerID]
+		lb.initialFetchMu.RUnlock()
+
 		tailLines := "50"
-		if !firstConnection {
+		if alreadyFetched {
 			tailLines = "0"
 		}
 
@@ -213,7 +224,14 @@ func (lb *LogBroker) streamContainer(ctx context.Context, containerID, container
 			time.Sleep(time.Second)
 			continue
 		}
-		firstConnection = false
+
+		// Mark container as having had initial logs fetched
+		// This persists across goroutine restarts to prevent duplicate logs
+		if !alreadyFetched {
+			lb.initialFetchMu.Lock()
+			lb.initialFetchDone[containerID] = true
+			lb.initialFetchMu.Unlock()
+		}
 
 		// Parse et distribuer
 		var closeOnce sync.Once
@@ -454,6 +472,11 @@ func (lb *LogBroker) StopAll() {
 	lb.streamsMu.Lock()
 	lb.activeStreams = make(map[string]context.CancelFunc)
 	lb.streamsMu.Unlock()
+
+	// Clear initial fetch tracking (allows re-fetching on restart)
+	lb.initialFetchMu.Lock()
+	lb.initialFetchDone = make(map[string]bool)
+	lb.initialFetchMu.Unlock()
 }
 
 // FetchRecentLogs fetches recent log lines for specific containers (oneshot, no streaming)
