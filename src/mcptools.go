@@ -163,7 +163,13 @@ func (s *MCPServer) handleGetLogs(ctx context.Context, request *protocol.CallToo
 
 	// Set defaults
 	if args.Lines == 0 {
-		args.Lines = 100
+		// Use 1000 lines by default when filtering (searching for keywords)
+		// Use 100 lines by default when just fetching recent logs
+		if args.Filter != "" {
+			args.Lines = 1000
+		} else {
+			args.Lines = 100
+		}
 	}
 	if args.Lines > 10000 {
 		args.Lines = 10000
@@ -220,10 +226,14 @@ func (s *MCPServer) handleGetLogs(ctx context.Context, request *protocol.CallToo
 	var output strings.Builder
 	for _, c := range containers {
 		name := getContainerName(c)
-		output.WriteString(fmt.Sprintf("=== Container: %s ===\n", name))
 
 		logLines, ok := logsMap[c.ID]
 		if !ok || len(logLines) == 0 {
+			// Skip containers with no logs when filtering
+			if args.Filter != "" {
+				continue
+			}
+			output.WriteString(fmt.Sprintf("=== Container: %s ===\n", name))
 			output.WriteString("(no logs available)\n\n")
 			continue
 		}
@@ -246,9 +256,14 @@ func (s *MCPServer) handleGetLogs(ctx context.Context, request *protocol.CallToo
 			}
 		}
 
+		// Skip containers with no matching logs when filtering
 		if len(filtered) == 0 {
-			output.WriteString("(no matching logs)\n\n")
+			if args.Filter == "" {
+				output.WriteString(fmt.Sprintf("=== Container: %s ===\n", name))
+				output.WriteString("(no matching logs)\n\n")
+			}
 		} else {
+			output.WriteString(fmt.Sprintf("=== Container: %s ===\n", name))
 			for _, line := range filtered {
 				output.WriteString(fmt.Sprintf("[%s] %s\n", name, line))
 			}

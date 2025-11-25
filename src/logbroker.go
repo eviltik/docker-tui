@@ -484,27 +484,8 @@ func (lb *LogBroker) FetchRecentLogs(containerIDs []string, tailLines string) ma
 	result := make(map[string][]string)
 
 	for _, containerID := range containerIDs {
-		// Find container name
-		lb.containersMu.RLock()
-		var containerName string
-		for _, c := range lb.containers {
-			if c.ID == containerID {
-				// CRITICAL FIX: Protect against empty Names slice
-				if len(c.Names) > 0 {
-					containerName = strings.TrimPrefix(c.Names[0], "/")
-				} else {
-					containerName = containerID[:12]
-				}
-				break
-			}
-		}
-		lb.containersMu.RUnlock()
-
-		if containerName == "" {
-			continue
-		}
-
 		// Fetch logs (oneshot) - use closure to properly defer cancel
+		// Note: We fetch by container ID directly, no need to lookup container name
 		lines := func() []string {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()

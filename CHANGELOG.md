@@ -7,6 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.2] - 2025-11-25
+
+### Fixed
+- **MCP global log search**: Fixed issue where `get_logs` tool was skipping containers when searching across all containers. The container name lookup was incorrectly using a stale container list, causing most containers to be skipped during global searches.
+
+### Improved
+- **MCP log search default**: When using `get_logs` with a filter (keyword/regex search), default lines increased from 100 to 1000 for better search results.
+
 ## [1.2.1] - 2025-11-25
 
 ### Fixed
