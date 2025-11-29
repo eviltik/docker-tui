@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.3] - 2025-11-29
+
+### Added
+- **Log view pause mode**: When scrolling up in logs view, auto-scroll is paused to prevent content jumping. Shows `[PAUSED X%]` indicator. Press End to resume auto-scroll.
+
 ## [1.2.2] - 2025-11-25
 
 ### Fixed

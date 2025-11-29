@@ -82,6 +82,7 @@ type model struct {
 	logsViewBuffer       []string        // Formatted buffer for display (fallback)
 	logsViewScroll       int             // Scroll offset for logsView
 	logsViewMaxNameWidth int             // Maximum container name width for alignment
+	logsViewPaused       bool            // True when user scrolled up (pause auto-scroll)
 	logsColorEnabled     bool            // True to show colored backgrounds in logs (default: true)
 	newLogChan           chan struct{}   // Channel to notify new log arrivals
 	logChanClosing       atomic.Bool     // Atomic flag to prevent panic on closed channel
@@ -523,10 +524,11 @@ func (m *model) logLineMatchesFilter(line string) bool {
 	return strings.Contains(strings.ToLower(cleanLine), strings.ToLower(m.filterActive))
 }
 
-// updateWasAtBottom updates the wasAtBottom flag based on scroll position
+// updateWasAtBottom updates the wasAtBottom and logsViewPaused flags based on scroll position
 func (m *model) updateWasAtBottom() {
 	if m.view != logsView || m.bufferConsumer == nil {
 		m.wasAtBottom = false
+		m.logsViewPaused = false
 		return
 	}
 
@@ -535,6 +537,8 @@ func (m *model) updateWasAtBottom() {
 
 	// We are at bottom if scroll >= maxScroll - 2 (2 lines tolerance)
 	m.wasAtBottom = m.logsViewScroll >= maxScroll-2
+	// Pause when not at bottom (user scrolled up)
+	m.logsViewPaused = !m.wasAtBottom
 }
 
 // getFilteredLogCount returns the number of logs after filtering

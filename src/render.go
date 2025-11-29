@@ -274,7 +274,11 @@ func (m *model) renderLogs() string {
 				percentage = 100
 			}
 		}
-		scrollInfo = fmt.Sprintf("[%d%%]", percentage)
+		if m.logsViewPaused {
+			scrollInfo = fmt.Sprintf("[PAUSED %d%%]", percentage)
+		} else {
+			scrollInfo = fmt.Sprintf("[%d%%]", percentage)
+		}
 	}
 
 	// Show filter indicator if active

@@ -141,8 +141,9 @@ func (m *model) handleMouseEvent(msg tea.MouseMsg) (tea.Model, tea.Cmd) {
 					// Auto-scroll to bottom
 					m.logsViewScroll = max(0, m.getFilteredLogCount()-(m.height-5))
 
-					// We start at bottom, so wasAtBottom = true
+					// We start at bottom, so wasAtBottom = true and not paused
 					m.wasAtBottom = true
+					m.logsViewPaused = false
 
 					m.viewTransitionMu.Unlock()
 
