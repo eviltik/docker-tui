@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.2.4] - 2025-11-29
+
+### Fixed
+- **Tests**: Updated tests to match v1.1.0 keyboard shortcut changes (arrow keys instead of j/k, K for kill/stop, P for pause)
+
 ## [1.2.3] - 2025-11-29
 
 ### Added

@@ -229,19 +229,8 @@ func TestHandleKeyPress_Navigation(t *testing.T) {
 		t.Errorf("cursor after up = %d, want 1", result.(*model).cursor)
 	}
 
-	// Test j (vim down)
-	m.cursor = 1
-	result, _ = m.handleKeyPress(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("j")})
-	if result.(*model).cursor != 2 {
-		t.Errorf("cursor after j = %d, want 2", result.(*model).cursor)
-	}
-
-	// Test k (vim up)
-	m.cursor = 2
-	result, _ = m.handleKeyPress(tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune("k")})
-	if result.(*model).cursor != 1 {
-		t.Errorf("cursor after k = %d, want 1", result.(*model).cursor)
-	}
+	// Note: vim-style j/k navigation was removed in v1.1.0
+	// Use arrow keys instead
 
 	// Test Home
 	m.cursor = 3

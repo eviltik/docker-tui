@@ -365,7 +365,7 @@ func TestHandleListViewKeys_UpNavigation(t *testing.T) {
 		shiftStart: -1,
 	}
 
-	msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}}
+	msg := tea.KeyMsg{Type: tea.KeyUp}
 	newModel, _ := m.handleListViewKeys(msg)
 	m = newModel.(*model)
 
@@ -382,7 +382,7 @@ func TestHandleListViewKeys_DownNavigation(t *testing.T) {
 		containersMu: sync.RWMutex{},
 	}
 
-	msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'j'}}
+	msg := tea.KeyMsg{Type: tea.KeyDown}
 	newModel, _ := m.handleListViewKeys(msg)
 	m = newModel.(*model)
 

@@ -240,7 +240,7 @@ func TestHandleListViewKeys_S_MultipleContainers(t *testing.T) {
 	}
 }
 
-func TestHandleListViewKeys_P_StopContainers(t *testing.T) {
+func TestHandleListViewKeys_K_StopContainers(t *testing.T) {
 	m := &model{
 		containers: []types.Container{
 			{ID: "c1", Names: []string{"/cont1"}, State: "running"},
@@ -254,7 +254,8 @@ func TestHandleListViewKeys_P_StopContainers(t *testing.T) {
 		selectedMu: sync.RWMutex{},
 	}
 
-	msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'p'}}
+	// K is now the shortcut for Kill (stop) - changed in v1.1.0
+	msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'k'}}
 	newModel, _ := m.handleListViewKeys(msg)
 	m = newModel.(*model)
 
@@ -292,7 +293,7 @@ func TestHandleListViewKeys_R_RestartContainers(t *testing.T) {
 	}
 }
 
-func TestHandleListViewKeys_U_PauseContainers(t *testing.T) {
+func TestHandleListViewKeys_P_PauseContainers(t *testing.T) {
 	m := &model{
 		containers: []types.Container{
 			{ID: "c1", Names: []string{"/cont1"}, State: "running"},
@@ -306,7 +307,8 @@ func TestHandleListViewKeys_U_PauseContainers(t *testing.T) {
 		selectedMu: sync.RWMutex{},
 	}
 
-	msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'u'}}
+	// P is now the shortcut for Pause - changed in v1.1.0
+	msg := tea.KeyMsg{Type: tea.KeyRunes, Runes: []rune{'p'}}
 	newModel, _ := m.handleListViewKeys(msg)
 	m = newModel.(*model)
 
